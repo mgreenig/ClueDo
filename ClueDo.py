@@ -8,8 +8,7 @@ class ClueGame:
     locations = {'Kitchen', 'Dining Room', 'Lounge', 'Hall', 'Study', 'Library', 'Billiard Room', 'Conservatory', 'Ballroom'}
     board_graph = board_graph
     char_starting_positions = {'Colonel Mustard': 66, 'Miss Scarlett': 4, 'Mrs Peacock': 145, 'Dr Orchid': 196, 'Rev Green':95, 'Prof Plum': 28}
-    rooms = {'Kitchen': 194, 'Dining Room': 87, 'Lounge': 5, 'Hall': 3, 'Study': 1, 
-             'Library': 82, 'Billiard Room': 109, 'Conservatory': 186, 'Ballroom': 190}
+    room_locations = {'Kitchen': 194, 'Dining Room': 87, 'Lounge': 5, 'Hall': 3, 'Study': 1, 'Library': 82, 'Billiard Room': 109, 'Conservatory': 186, 'Ballroom': 190}
   
     # initialize with a set of characters, my character, and the cards we are dealt
     def __init__(self, players, my_char, my_cards):
@@ -37,18 +36,18 @@ class ClueGame:
         # Calculate distances to each room from current position
         path_lengths = {'Kitchen': 0, 'Dining Room': 0, 'Lounge': 0, 'Hall': 0, 'Study': 0, 'Library': 0, 
                         'Billiard Room': 0, 'Conservatory': 0, 'Ballroom': 0}
-        for room in rooms:
-            path_lengths[room] = nx.shortest_path_length(board_graph, self.position, rooms[room])
+        for room in room_locations:
+            path_lengths[room] = nx.shortest_path_length(board_graph, self.position, room_locations[room])
             
             # Filter rooms further away than dice roll
             possible_rooms = [key for key in path_lengths if path_lengths[key] <= dice_roll]
             
             # If no rooms are reachable in this turn, move to a square on the way to closest room
             if len(possible_rooms) == 0:
-                possible_rooms = [key for key in rooms if path_lengths[key] == min(path_lengths.values())]
+                possible_rooms = [key for key in room_locations if path_lengths[key] == min(path_lengths.values())]
                 closest_room_key = np.random.choice(possible_rooms,size=1)[0]   
                 # Find shortest path to closest room and move as far along it as dice roll will allow
-                return mx.shortest_path(board_graph, self.position, rooms[closest_room_key])[dice_roll]
+                return mx.shortest_path(board_graph, self.position, room_locations[closest_room_key])[dice_roll], closest_room_key
 
             # If more than one room same distance apart, pick one at random and move to it
             elif len(possible_rooms) > 1:
@@ -56,18 +55,24 @@ class ClueGame:
                 possible_rooms = [key for key in possible_rooms if path_lengths[key] == min(path_lengths.values())]
                 # Move to closest room at random
                 room_key = np.random.choice(possible_rooms,size=1)[0]
-                return board_graph[rooms[room_key]]
+                return board_graph[room_locations[room_key]], room_key
             
             # If only one room available, move to it
             else:
-                return board_graph[rooms[possible_rooms[0]]]
+                return board_graph[room_locations[possible_rooms[0]]], room_key
 
     def our_turn(self):
         dice_roll = input('Please Enter Dice Roll')
         assert type(dice_roll) == int, "Uh... that ain't a number tho"
 
-        self.position = self.move_on_board(dice_roll)
-        print('I have moved to {}'.format(rooms[self.position]))
+        self.position, room = self.move_on_board(dice_roll)
+        room_locations_inv = {loc: room for room, loc in room_locations.items()}
+    
+        if self.position in room_locations_inv.keys():
+            print('I have moved to {}'.format(room))
+        else:
+            print('I am on my way to {}'.format(room))
+        
 
     # function for updating the possible cards each player has in each round
     def update_possible_cards(self, player):
@@ -138,4 +143,4 @@ class ClueGame:
         self.current_turn += 1  
         
         if self.current_turn % len(self.players) == 0:
-            self.current_round = int(self.current_turn / len(self.players))   
+            self.current_round = int(self.current_turn / len(self.players)) 
