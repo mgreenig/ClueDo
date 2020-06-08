@@ -28,6 +28,9 @@ class ClueGame:
         self.possible_cards = {player: {} for player in self.players}
         # location on the board
         self.location = ClueGame.char_starting_positions[self.my_char]
+        self.possible_characters = self.characters
+        self.possible_weapons = self.weapons
+        self.possible_locations = self.locations
         self.current_turn = 0
         self.current_round = 0
         
@@ -126,8 +129,9 @@ class ClueGame:
             # if there is only one possible card, set the game state variable to reflect that
             if len(self.possible_cards[player][previous_round]) == 1:
                 card = ''.join([str(card) for card in self.possible_cards[player][previous_round]])
-                self.game_state[player][card] = 1
-     
+                for single_player in self.game_state:
+                    self.game_state[single_player][card] = 1 if single_player == player else -1
+                    
     # turn for other players
     def other_turn(self, player, make_suggestion = True):
         
