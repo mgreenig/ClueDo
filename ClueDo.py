@@ -110,6 +110,11 @@ class ClueGame:
             suggestions = [sug_character, sug_weapon, sug_location]
             player_position = self.players.index(player)
             
+            # if we are the suggested character, update our current position to suggested room
+            if sug_character == self.mychar:
+                self.position = room_locations[sug_location]
+                print("I guess I'm moving to {} then...".format(sug_location))
+            
             # loop through other players positions
             for pos in range(player_position+1, player_position+len(self.players)):
                 
