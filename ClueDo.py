@@ -60,6 +60,41 @@ class ClueGame:
             # If only one room available, move to it
             else:
                 return board_graph[room_locations[possible_rooms[0]]], room_key
+            
+    def score_item(self, item):
+       
+        item_scores = []
+        for player in self.game_state:
+            item_scores.append(self.game_state[player][item])
+        if any([score == 1 for score in item_scores]):
+            return False
+        else: 
+            return sum(item_scores)
+            
+    def make_suggestion(self):
+        
+        char_scores = {}
+        weapon_scores = {}
+        location_scores = {}
+        
+        for character in self.characters:
+            if score_item(character):
+                char_scores[character] = score_item(character)
+        
+        for weapon in self.weapons:
+            if score_item(weapon):
+                weapon_scores[weapon] = score_item(weapon)
+        
+        for location in self.locations:
+            if score_item(location):
+                location_scores[location] = score_item(location)
+                
+        top_characters = [character for character in char_scores if char_scores[character] == min(char_scores.values())]
+        top_weapons = [weapon for weapon in weapon_scores if weapon_scores[weapon] == min(weapon_scores.values())]
+        top_locations = [location for location in location_scores if location_scores[location] == min(location_scores.values())]
+        
+        top_char = np.random.choice(top_characters, size=1)
+        
 
     def our_turn(self):
         dice_roll = input('Please Enter Dice Roll')
