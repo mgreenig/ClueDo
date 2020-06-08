@@ -1,3 +1,6 @@
+import numpy as np
+from Board_graph import board_graph
+
 class ClueGame:
     
     characters = {'Colonel Mustard', 'Miss Scarlett', 'Mrs Peacock', 'Dr Orchid', 'Rev Green', 'Prof Plum'}
