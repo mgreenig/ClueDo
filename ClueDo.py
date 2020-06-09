@@ -41,8 +41,8 @@ class ClueGame:
         path_lengths = {'Kitchen': 0, 'Dining Room': 0, 'Lounge': 0, 'Hall': 0, 'Study': 0, 'Library': 0, 
                         'Billiard Room': 0, 'Conservatory': 0, 'Ballroom': 0}
         for room in room_locations:
-            path_lengths[room] = nx.shortest_path_length(board_graph, self.position, room_locations[room])
             
+            path_lengths[room] = nx.shortest_path_length(board_graph, self.position, room_locations[room])
             # Filter rooms further away than dice roll
             possible_rooms = [key for key in path_lengths if path_lengths[key] <= dice_roll]
             
