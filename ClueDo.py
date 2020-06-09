@@ -66,9 +66,7 @@ class ClueGame:
             
     def score_item(self, item):
        
-        item_scores = []
-        for player in self.game_state:
-            item_scores.append(self.game_state[player][item])
+        item_scores = [self.game_state[player][item] for player in self.game_state]
         if any([score == 1 for score in item_scores]):
             return False
         else: 
@@ -96,8 +94,11 @@ class ClueGame:
         top_weapons = [weapon for weapon in weapon_scores if weapon_scores[weapon] == min(weapon_scores.values())]
         top_locations = [location for location in location_scores if location_scores[location] == min(location_scores.values())]
         
-        top_char = np.random.choice(top_characters, size=1)
+        top_char = np.random.choice(top_characters, size=1)[0]
+        top_weapon = np.random.choice(top_weapons, size=1)[0]
+        top_location = np.random.choice(top_locations, size=1)[0]
         
+        return top_char, top_weapon, top_location
 
     def our_turn(self):
         dice_roll = input('Please Enter Dice Roll')
