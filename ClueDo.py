@@ -124,7 +124,7 @@ class ClueGame:
             top_char, top_weapon, top_location = self.get_top_suggestions()
             print('Hm... what should I suggest...')
             time.sleep(3)
-            print('I suggest: {} did it with the {} in the {}'.format(top_char, top_weapon, room))
+            print('I suggest: {} did it with the {} in the {}'.format(top_char, top_weapon.lower(), room.lower()))
         else:
             print('I am on my way to {}'.format(room))
         
