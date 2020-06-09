@@ -1,4 +1,5 @@
 import numpy as np
+import time
 from Board_graph import board_graph
 
 class ClueGame:
@@ -55,7 +56,9 @@ class ClueGame:
             # If more than one room same distance apart, pick one at random and move to it
             elif len(possible_rooms) > 1:
                 # Find the list of close rooms
-                possible_rooms = [key for key in possible_rooms if path_lengths[key] == min(path_lengths.values())]
+                possible_rooms = [room for room in possible_rooms if path_lengths[room] == min(path_lengths.values())]
+                room_scores = {room: score_item(room) for room in possible_rooms if score_item(room)}
+                possible_rooms = [room for room in room_scores if room_scores[room] == min(room_scores.values())]
                 # Move to closest room at random
                 room_key = np.random.choice(possible_rooms,size=1)[0]
                 return board_graph[room_locations[room_key]], room_key
@@ -64,20 +67,25 @@ class ClueGame:
             else:
                 return board_graph[room_locations[possible_rooms[0]]], room_key
             
+    # function for scoring an item based on current knowledge (i.e. how many players do not hold it for certain)
     def score_item(self, item):
        
         item_scores = [self.game_state[player][item] for player in self.game_state]
+        # if we know that a player has the card, just return false
         if any([score == 1 for score in item_scores]):
             return False
+        # otherwise return the sum of the scores - here a lower sum of scores means a better guess
         else: 
             return sum(item_scores)
             
-    def make_suggestion(self):
+    # function for making a suggestion on our turn
+    def get_top_suggestions(self):
         
         char_scores = {}
         weapon_scores = {}
         location_scores = {}
         
+        # for each item of each type, score the item and save to the dictionary
         for character in self.characters:
             if score_item(character):
                 char_scores[character] = score_item(character)
@@ -90,17 +98,21 @@ class ClueGame:
             if score_item(location):
                 location_scores[location] = score_item(location)
                 
+        # find the item(s) in each category with the minimum score
         top_characters = [character for character in char_scores if char_scores[character] == min(char_scores.values())]
         top_weapons = [weapon for weapon in weapon_scores if weapon_scores[weapon] == min(weapon_scores.values())]
         top_locations = [location for location in location_scores if location_scores[location] == min(location_scores.values())]
         
+        # sample randomly 
         top_char = np.random.choice(top_characters, size=1)[0]
         top_weapon = np.random.choice(top_weapons, size=1)[0]
         top_location = np.random.choice(top_locations, size=1)[0]
         
         return top_char, top_weapon, top_location
 
+    # function for taking our turn
     def our_turn(self):
+        
         dice_roll = input('Please Enter Dice Roll')
         assert type(dice_roll) == int, "Uh... that ain't a number tho"
 
@@ -109,6 +121,10 @@ class ClueGame:
     
         if self.position in room_locations_inv.keys():
             print('I have moved to {}'.format(room))
+            top_char, top_weapon, top_location = self.get_top_suggestions()
+            print('Hm... what should I suggest...')
+            time.sleep(3)
+            print('I suggest: {} did it with the {} in the {}'.format(top_char, top_weapon, room))
         else:
             print('I am on my way to {}'.format(room))
         
