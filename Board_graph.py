@@ -288,6 +288,7 @@ adj_mat[192,191] = 1
 adj_mat[191,196] = 1
 adj_mat[88,109] = 1
 adj_mat[90,82] = 1
+adj_mat[110,104] = 1
 
 adj_mat_tran = adj_mat.transpose()
 full_adj_mat = adj_mat + adj_mat_tran
