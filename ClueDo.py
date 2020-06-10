@@ -113,8 +113,8 @@ class ClueGame:
         # If more than one possible, close room same distance apart, pick one at random and move to it
         elif len(possible_rooms) > 1:
             
-            dist_to_closest_viable_room = min([path_lengths[key] for key in room_scores])
-            possible_rooms = [key for key in room_scores if path_lengths[key] == dist_to_closest_viable_room]
+            best_possible_room_score = min([room_scores[room] for room in possible_rooms])
+            best_possible_rooms = [room for room in possible_rooms if room_scores[room] == best_possible_room_score]
             # Move to closest room at random
             room_key = np.random.choice(possible_rooms,size=1)[0]
             new_location = self.room_locations[room_key]
