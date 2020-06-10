@@ -83,7 +83,7 @@ class ClueGame:
     # function that returns false if we know that any player has the item
     def is_item_possible(self, item):
         item_scores = [self.game_state[player][item] for player in self.game_state]
-        return not any([score == 1 for score in item_scores])
+        return all([score != 1 for score in item_scores])
             
     # function for scoring an item based on current knowledge (i.e. how many players do not hold it for certain)
     def score_item(self, item):
