@@ -8,45 +8,44 @@ class ClueGame:
     characters = {'Colonel Mustard', 'Miss Scarlett', 'Mrs Peacock', 'Dr Orchid', 'Rev Green', 'Prof Plum'}
     weapons = {'Rope', 'Dagger', 'Wrench', 'Revolver', 'Candlestick', 'Lead Pipe'}
     locations = {'Kitchen', 'Dining Room', 'Lounge', 'Hall', 'Study', 'Library', 'Billiard Room', 'Conservatory', 'Ballroom'}
+    all_cards = characters.union(weapons, locations)
     board_graph = board_graph
     char_starting_positions = {'Colonel Mustard': 66, 'Miss Scarlett': 4, 'Mrs Peacock': 145, 'Dr Orchid': 196, 'Rev Green':95, 'Prof Plum': 28}
     room_locations = {'Kitchen': 194, 'Dining Room': 87, 'Lounge': 5, 'Hall': 3, 'Study': 1, 'Library': 82, 'Billiard Room': 109, 'Conservatory': 186, 'Ballroom': 190}
-  
+    possible_clue_cards = {'Specific card reveal', 'Choice reveal', 'Secret passage', 'Player movement', 'Positional reveal', 'All reveal'}
+
     # initialize with a set of characters, my character, and the cards we are dealt
     def __init__(self, players, my_char, my_cards):
         assert all([player in ClueGame.characters for player in players])
         self.players = players
         self.my_char = my_char
         self.my_cards = my_cards
-        # update the character list to exclude characters not playing
-        self.characters = set(players).intersection(self.characters)
-        self.all_cards = self.characters.union(self.weapons, self.locations)
         # dictionary for storing knowledge about other players' cards: -1 means they do not have the card, 1 means they do, 0 is ambiguous
-        self.game_state = {player: {item: 1 if item in self.my_cards and player == my_char
-                                    else -1 if item in self.my_cards and player != my_char
-                                    else 0 for item in self.characters.union(self.weapons, self.locations)} 
+        self.game_state = {player: {card: 1 if card in self.my_cards and player == my_char
+                                    else -1 if card in self.my_cards and player != my_char
+                                    else 0 for card in ClueGame.all_cards} 
                            for player in self.players}
         # dictionary for tracking possible cards for each player in each round, based on what they show
         self.possible_cards = {player: {} for player in self.players}
         # location on the board
         self.position = ClueGame.char_starting_positions[self.my_char]
-        # items that could be inside of the envelope
-        self.possible_characters = self.characters
-        self.possible_weapons = self.weapons
-        self.possible_locations = self.locations
+        # cards that could be inside of the envelope
+        self.possible_characters = ClueGame.characters
+        self.possible_weapons = ClueGame.weapons
+        self.possible_locations = ClueGame.locations
         # turn tracker
         self.current_turn = 0
         self.current_round = 0
         
-    # function that returns false if we know that any player has the item
-    def is_item_possible(self, item):
-        item_scores = [self.game_state[player][item] for player in self.game_state]
-        return all([score != 1 for score in item_scores])
+    # function that returns false if we know that any player has the card
+    def is_card_possible(self, card):
+        card_scores = [self.game_state[player][card] for player in self.game_state]
+        return all([score != 1 for score in card_scores])
             
-    # function for scoring an item based on current knowledge (i.e. how many players do not hold it for certain)
-    def score_item(self, item):
-        item_scores = [self.game_state[player][item] for player in self.game_state]
-        return sum(item_scores)
+    # function for scoring a card based on current knowledge (i.e. how many players do not hold it for certain)
+    def score_card(self, card):
+        card_scores = [self.game_state[player][card] for player in self.game_state]
+        return sum(card_scores)
             
     # function for making a suggestion on our turn
     def get_top_suggestions(self):
@@ -55,20 +54,20 @@ class ClueGame:
         weapon_scores = {}
         location_scores = {}
         
-        # for each item of each type, score the item and save to the dictionary
-        for character in self.characters:
-            if self.is_item_possible(character):
-                char_scores[character] = self.score_item(character)
+        # for each card of each type, score the card and save to the dictionary
+        for character in ClueGame.characters:
+            if self.is_card_possible(character):
+                char_scores[character] = self.score_card(character)
         
-        for weapon in self.weapons:
-            if self.is_item_possible(weapon):
-                weapon_scores[weapon] = self.score_item(weapon)
+        for weapon in ClueGame.weapons:
+            if self.is_card_possible(weapon):
+                weapon_scores[weapon] = self.score_card(weapon)
         
-        for location in self.locations:
-            if self.is_item_possible(location):
-                location_scores[location] = self.score_item(location)
+        for location in ClueGame.locations:
+            if self.is_card_possible(location):
+                location_scores[location] = self.score_card(location)
                  
-        # find the item(s) in each category with the minimum score
+        # find the card(s) in each category with the minimum score
         top_characters = [character for character in char_scores if char_scores[character] == min(char_scores.values())]
         top_weapons = [weapon for weapon in weapon_scores if weapon_scores[weapon] == min(weapon_scores.values())]
         top_locations = [location for location in location_scores if location_scores[location] == min(location_scores.values())]
@@ -80,6 +79,7 @@ class ClueGame:
         
         return top_char, top_weapon, top_location
     
+    # function for moving on the board, towards or into the best room 
     def move_on_board(self, dice_roll):
 
         # Calculate distances to each room from current position
@@ -89,7 +89,7 @@ class ClueGame:
             path_lengths[room] = nx.shortest_path_length(board_graph, self.position, self.room_locations[room])
 
         # Get scores for each room and filter possible rooms as rooms with lowest score
-        room_scores = {room: self.score_item(room) for room in ClueGame.locations if self.is_item_possible(room)}
+        room_scores = {room: self.score_card(room) for room in ClueGame.locations if self.is_card_possible(room)}
         top_rooms = [room for room in room_scores if room_scores[room] == min(room_scores.values())]
 
         # Filter rooms further away than dice roll
@@ -123,12 +123,54 @@ class ClueGame:
             room = possible_rooms[0]
             new_location = self.room_locations[possible_rooms[0]]
             return new_location, room
+        
+    def clue_card(self):
+        
+         player_showing_card = input('Please enter the player that showed the card')
+         while player_showing_card not in self.players:
+             print("Who is that? Try again.")
+             time.sleep(1)
+             player_showing_card = input('Please enter the player that showed the card')
+                
+         clue_card_type = input('Please choose which type of clue card has been shown: {}'.format(', '.join(list(ClueGame.possible_clue_cards))))
+         while clue_card_type not in ClueGame.possible_clue_cards:
+             print("That's not a valid type of clue card. Trust me, we looked through all of them.")
+             time.sleep(1)
+             clue_card_type = input('Please choose which type of clue card has been shown: {}'.format(', '.join(list(ClueGame.possible_clue_cards))))
 
+         if clue_card_type == 'Specific card reveal':
+            card_shown = input('Please enter which card was revealed')
+            while card_shown not in self.all_cards:
+                print("That doesn't look like anything to me...")
+                time.sleep(1)
+                card_shown = input('Please enter which card was revealed')
+            self.rule_out_card(player_showing_card, card_shown)
+            
+         elif clue_card_type == 'Choice reveal':
+            if player_showing_card == self.my_char:
+                card_scores = {card: self.score_card(card) for card in self.all_cards}
+                best_cards = [card for card in card_scores if card_scores[card] == min(card_scores.values())]
+                best_card = np.random.choice(best_cards, size = 1)[0]
+                time.sleep(1)
+                print('If anyone has {}, please show it'.format(best_card))
+                time.sleep(5)
+                character = input('If a player showed the card, enter their character here. Otherwise, press enter')
+                while character not in self.players and character != '':
+                    print("Who is that? Try again.")
+                    time.sleep(1)
+                    character = input('If anyone has {}, please show it. If a player showed the card, enter their character here. Otherwise, press enter'.format(best_card))
+                if character == '':
+                    if best_card in self.players:
+                        self.possible_characters = {best_card}
+                    elif best_card in self.weapons:
+                        self.possible_weapons = {best_card}
+                    elif best_card in self.locations:
+                        self.possible_locations = {best_card}
     
     # function for taking our turn
     def our_turn(self):
         
-        # Enter dice rool value for movement
+        # Enter dice roll value for movement
         dice_roll = int(input('Please Enter Dice Roll'))
         while type(dice_roll) != int or dice_roll > 12 or dice_roll < 2:
             print("Uh... I'm gonna need a valid input")
@@ -143,20 +185,15 @@ class ClueGame:
         
         # If we have a clue card, have person enter result
         for i in range(n_clue_cards):
-            card_shown = input('Please enter which card was revealed')
-            while card_shown not in self.locations.union(self.weapons, self.characters):
-                print("That doesn't look like anything to me...")
-                time.sleep(1)
-                card_shown = input('Please enter which card was revealed')
-            
-            player_showing_card = input('Please enter the player that showed the card')
-            while player_showing_card not in self.players:
-                print("Who is that? Try again.")
-                time.sleep(1)
-                player_showing_card = input('Please enter the player that showed the card')
-                
+           
+            self.clue_card()
+        
             # Update each players possible hands 
             self.rule_out_card(player_showing_card, card_shown)
+            self.update_possible_cards(player_showing_card)
+            
+        # Update possible guesses after clue card is shown
+        self.update_possible_guesses()
         
         # Complete room movement
         self.position, room = self.move_on_board(dice_roll)
@@ -175,7 +212,22 @@ class ClueGame:
     def rule_out_card(self, player, card):
         for single_player in self.game_state:
             self.game_state[single_player][card] = 1 if single_player == player else -1
-
+            
+    # update attribute for possible cards (cards that could be in the envelope) in each category
+    def update_possible_guesses(self):
+        
+        for char in self.possible_characters:
+            if not self.is_card_possible(char):
+                self.possible_characters.remove(char)
+                
+        for weapon in self.possible_weapons:
+            if not self.is_card_possible(weapon):
+                self.possible_weapons.remove(weapon)
+                
+        for location in self.possible_locations:
+            if not self.is_card_possible(location):
+                self.possible_locations.remove(location)
+                
     # function for updating the possible cards each player has in each round
     def update_possible_cards(self, player):
         
@@ -209,19 +261,19 @@ class ClueGame:
                                
             # assert inputs are correct
             sug_character = input('Please enter the character being accused.')
-            while sug_character not in self.characters:
+            while sug_character not in ClueGame.characters:
                 print('I don\'t know that person.')
                 time.sleep(1)
                 sug_character = input('Please enter the character being accused.') 
                                
             sug_weapon = input('Please enter the weapon that was used.')
-            while sug_weapon not in self.weapons:
+            while sug_weapon not in ClueGame.weapons:
                 print('Please choose a valid weapon.')
                 time.sleep(1)
                 sug_weapon = input('Please enter the weapon that was used.')
              
             sug_location = input('Please enter the location of the crime.')
-            while sug_location not in self.locations:
+            while sug_location not in ClueGame.locations:
                 print('Please choose a valid location.')
                 time.sleep(1)
                 sug_location = input('Please enter the location of the crime.')               
@@ -263,6 +315,8 @@ class ClueGame:
                         self.game_state[current_player][sug_weapon] = -1
                         self.game_state[current_player][sug_location] = -1    
                         self.update_possible_cards(current_player)
+                        
+            self.update_possible_guesses()
                                  
         self.current_turn += 1  
         
