@@ -38,8 +38,6 @@ class ClueGame:
         self.current_turn = 0
         self.current_round = 0
         
-
-            
     # function that returns false if we know that any player has the item
     def is_item_possible(self, item):
         item_scores = [self.game_state[player][item] for player in self.game_state]
@@ -132,14 +130,33 @@ class ClueGame:
         
         # Enter dice rool value for movement
         dice_roll = int(input('Please Enter Dice Roll'))
-        clue_cards = int(input('Please enter number of clue cards shown'))
-        assert type(dice_roll) == int, "Uh... that ain't a number tho"
+        while type(dice_roll) != int or dice_roll > 12 or dice_roll < 2:
+            print("Uh... I'm gonna need a valid input")
+            time.sleep(1)
+            dice_roll = int(input('Please Enter Dice Roll'))
+            
+        n_clue_cards = int(input('Please enter number of clue cards shown'))
+        while type(n_clue_cards) != int or n_clue_cards > 2 or n_clue_cards < 0:
+            print("Uh... I'm gonna need a valid input")
+            time.sleep(1)
+            n_clue_cards = int(input('Please enter number of clue cards shown'))
         
         # If we have a clue card, have person enter result
-        if clue_cards == 1:
+        for i in range(n_clue_cards):
             card_shown = input('Please enter which card was revealed')
-            assert card_shown in self.locations.union(self.weapons, self.charcters), "That doesn't look like anything to me..."
-        # Update each players possible hands 
+            while card_shown not in self.locations.union(self.weapons, self.characters):
+                print("That doesn't look like anything to me...")
+                time.sleep(1)
+                card_shown = input('Please enter which card was revealed')
+            
+            player_showing_card = input('Please enter the player that showed the card')
+            while player_showing_card not in self.players:
+                print("Who is that? Try again.")
+                time.sleep(1)
+                player_showing_card = input('Please enter the player that showed the card')
+                
+            # Update each players possible hands 
+            self.rule_out_card(player_showing_card, card_shown)
         
         # Complete room movement
         self.position, room = self.move_on_board(dice_roll)
@@ -179,18 +196,35 @@ class ClueGame:
                 self.rule_out_card(self, player, card)
                 
     # turn for other players
-    def other_turn(self, player, make_suggestion = True):
+    def other_turn(self, player):
         
-        assert player in self.players
+        while player not in self.players:
+            print('I don\'t know that person')
+            time.sleep(1)
+            player = input('Please enter a valid character.')
+                               
+        make_suggestion = input('If {} would like to make a suggestion, enter any character and press enter. If not, just press enter.')
         
-        if make_suggestion:
+        if len(make_suggestion) > 0:
+                               
             # assert inputs are correct
             sug_character = input('Please enter the character being accused.')
-            assert sug_character in self.characters, 'Please choose a valid character.'
+            while sug_character not in self.characters:
+                print('I don\'t know that person.')
+                time.sleep(1)
+                sug_character = input('Please enter the character being accused.') 
+                               
             sug_weapon = input('Please enter the weapon that was used.')
-            assert sug_weapon in self.weapons, 'Please choose a valid weapon.'
+            while sug_weapon not in self.weapons:
+                print('Please choose a valid weapon.')
+                time.sleep(1)
+                sug_weapon = input('Please enter the weapon that was used.')
+             
             sug_location = input('Please enter the location of the crime.')
-            assert sug_location in self.locations, 'Please choose a valid location.'
+            while sug_location not in self.locations:
+                print('Please choose a valid location.')
+                time.sleep(1)
+                sug_location = input('Please enter the location of the crime.')               
             
             suggestions = [sug_character, sug_weapon, sug_location]
             player_position = self.players.index(player)
