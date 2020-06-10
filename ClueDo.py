@@ -43,7 +43,7 @@ class ClueGame:
     # function that returns false if we know that any player has the item
     def is_item_possible(self, item):
         item_scores = [self.game_state[player][item] for player in self.game_state]
-        return not any([score == 1 for score in item_scores])
+        return all([score != 1 for score in item_scores])
             
     # function for scoring an item based on current knowledge (i.e. how many players do not hold it for certain)
     def score_item(self, item):
@@ -69,9 +69,7 @@ class ClueGame:
         for location in self.locations:
             if self.is_item_possible(location):
                 location_scores[location] = self.score_item(location)
-                
-        print(char_scores)
-                
+                 
         # find the item(s) in each category with the minimum score
         top_characters = [character for character in char_scores if char_scores[character] == min(char_scores.values())]
         top_weapons = [weapon for weapon in weapon_scores if weapon_scores[weapon] == min(weapon_scores.values())]
@@ -145,7 +143,6 @@ class ClueGame:
         
         # Complete room movement
         self.position, room = self.move_on_board(dice_roll)
-        print(self.position)
         
         # If we have moved to a new room, make a suggestion
         if self.position in ClueGame.room_locations.values():
@@ -158,6 +155,9 @@ class ClueGame:
         else:
             print('I am on my way to the {}'.format(room))
         
+    def rule_out_card(self, player, card):
+        for single_player in self.game_state:
+            self.game_state[single_player][card] = 1 if single_player == player else -1
 
     # function for updating the possible cards each player has in each round
     def update_possible_cards(self, player):
@@ -175,10 +175,9 @@ class ClueGame:
                 self.possible_cards[player][previous_round] = self.possible_cards[player][previous_round].difference(impossible_cards_in_set)
             # if there is only one possible card, set the game state variable to reflect that
             if len(self.possible_cards[player][previous_round]) == 1:
-                card = ''.join([str(card) for card in self.possible_cards[player][previous_round]])
-                for single_player in self.game_state:
-                    self.game_state[single_player][card] = 1 if single_player == player else -1
-                    
+                card = self.possible_cards[player][previous_round]][0]
+                self.rule_out_card(self, player, card)
+                
     # turn for other players
     def other_turn(self, player, make_suggestion = True):
         
