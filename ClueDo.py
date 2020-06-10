@@ -18,7 +18,7 @@ class ClueGame:
         self.players = players
         self.my_char = my_char
         self.my_cards = my_cards
-        # update the character list to disclude characters not playing
+        # update the character list to exclude characters not playing
         self.characters = set(players).intersection(self.characters)
         self.all_cards = self.characters.union(self.weapons, self.locations)
         # dictionary for storing knowledge about other players' cards: -1 means they do not have the card, 1 means they do, 0 is ambiguous
@@ -30,59 +30,20 @@ class ClueGame:
         self.possible_cards = {player: {} for player in self.players}
         # location on the board
         self.position = ClueGame.char_starting_positions[self.my_char]
+        # items that could be inside of the envelope
         self.possible_characters = self.characters
         self.possible_weapons = self.weapons
         self.possible_locations = self.locations
+        # turn tracker
         self.current_turn = 0
         self.current_round = 0
         
-    def move_on_board(self, dice_roll):
 
-        # Calculate distances to each room from current position
-        path_lengths = {'Kitchen': 0, 'Dining Room': 0, 'Lounge': 0, 'Hall': 0, 'Study': 0, 'Library': 0, 
-                        'Billiard Room': 0, 'Conservatory': 0, 'Ballroom': 0}
-        for room in self.room_locations: 
-            path_lengths[room] = nx.shortest_path_length(board_graph, self.position, self.room_locations[room])
-
-        # Get scores for each room and filter possible rooms as rooms with lowest score
-        room_scores = {room: self.score_item(room) for room in ClueGame.locations if self.is_item_possible(room)}
-        top_rooms = [room for room in room_scores if room_scores[room] == min(room_scores.values())]
-
-        # Filter rooms further away than dice roll
-        possible_rooms = [key for key in room_scores if path_lengths[key] <= dice_roll]
-
-        # If no rooms are reachable in this turn, move to a square on the way to closest room
-        if len(possible_rooms) == 0:
-            
-            # Find the rooms that are still uneliminated, and return those that are closest
-            dist_to_closest_viable_room = min([path_lengths[key] for key in room_scores])
-            possible_rooms = [key for key in room_scores if path_lengths[key] == dist_to_closest_viable_room]
-            # Pick one of these close and viable rooms at random and move to it
-            # Find shortest path to closest room and move as far along it as dice roll will allow
-            closest_room_key = np.random.choice(possible_rooms,size=1)[0]
-            new_location = nx.shortest_path(board_graph, self.position, self.room_locations[closest_room_key])[dice_roll]
-            return new_location, closest_room_key
-
-        # If more than one room same distance apart, pick one at random and move to it
-        elif len(possible_rooms) > 1:
-            
-            dist_to_closest_viable_room = min([path_lengths[key] for key in room_scores])
-            possible_rooms = [key for key in room_scores if path_lengths[key] == dist_to_closest_viable_room]
-            # Move to closest room at random
-            room_key = np.random.choice(possible_rooms,size=1)[0]
-            new_location = self.room_locations[room_key]
-            return new_location, room_key
-
-        # If only one room available, move to it
-        else:
-            room = possible_rooms[0]
-            new_location = self.room_locations[possible_rooms[0]]
-            return new_location, room
             
     # function that returns false if we know that any player has the item
     def is_item_possible(self, item):
         item_scores = [self.game_state[player][item] for player in self.game_state]
-        return all([score != 1 for score in item_scores])
+        return not any([score == 1 for score in item_scores])
             
     # function for scoring an item based on current knowledge (i.e. how many players do not hold it for certain)
     def score_item(self, item):
@@ -108,7 +69,9 @@ class ClueGame:
         for location in self.locations:
             if self.is_item_possible(location):
                 location_scores[location] = self.score_item(location)
-               
+                
+        print(char_scores)
+                
         # find the item(s) in each category with the minimum score
         top_characters = [character for character in char_scores if char_scores[character] == min(char_scores.values())]
         top_weapons = [weapon for weapon in weapon_scores if weapon_scores[weapon] == min(weapon_scores.values())]
@@ -120,28 +83,81 @@ class ClueGame:
         top_location = np.random.choice(top_locations, size=1)[0]
         
         return top_char, top_weapon, top_location
+    
+    def move_on_board(self, dice_roll):
 
+        # Calculate distances to each room from current position
+        path_lengths = {'Kitchen': 0, 'Dining Room': 0, 'Lounge': 0, 'Hall': 0, 'Study': 0, 'Library': 0, 
+                        'Billiard Room': 0, 'Conservatory': 0, 'Ballroom': 0}
+        for room in self.room_locations: 
+            path_lengths[room] = nx.shortest_path_length(board_graph, self.position, self.room_locations[room])
+
+        # Get scores for each room and filter possible rooms as rooms with lowest score
+        room_scores = {room: self.score_item(room) for room in ClueGame.locations if self.is_item_possible(room)}
+        top_rooms = [room for room in room_scores if room_scores[room] == min(room_scores.values())]
+
+        # Filter rooms further away than dice roll
+        possible_rooms = [key for key in room_scores if path_lengths[key] <= dice_roll]
+
+        # If no rooms are reachable in this turn, move to a square on the way to closest room
+        if len(possible_rooms) == 0:
+            
+            # Find the rooms that are still uneliminated, and return those that are closest
+            dist_to_closest_viable_room = min([path_lengths[key] for key in room_scores])
+            possible_rooms = [key for key in room_scores if path_lengths[key] == dist_to_closest_viable_room]
+            # Pick one of these close and viable rooms at random and move to it
+            # by finding shortest path to closest room and moving as far along it as dice roll will allow
+            closest_room_key = np.random.choice(possible_rooms,size=1)[0]
+            new_location = nx.shortest_path(board_graph, self.position, self.room_locations[closest_room_key])[dice_roll]
+            print(nx.shortest_path(board_graph, self.position, self.room_locations[closest_room_key]))
+            return new_location, closest_room_key
+
+        # If more than one possible, close room same distance apart, pick one at random and move to it
+        elif len(possible_rooms) > 1:
+            
+            dist_to_closest_viable_room = min([path_lengths[key] for key in room_scores])
+            possible_rooms = [key for key in room_scores if path_lengths[key] == dist_to_closest_viable_room]
+            # Move to closest room at random
+            room_key = np.random.choice(possible_rooms,size=1)[0]
+            new_location = self.room_locations[room_key]
+            return new_location, room_key
+
+        # If only one room available, move to it
+        else:
+            room = possible_rooms[0]
+            new_location = self.room_locations[possible_rooms[0]]
+            return new_location, room
+
+    
     # function for taking our turn
     def our_turn(self):
         
+        # Enter dice rool value for movement
         dice_roll = int(input('Please Enter Dice Roll'))
+        clue_cards = int(input('Please enter number of clue cards shown'))
         assert type(dice_roll) == int, "Uh... that ain't a number tho"
-
+        
+        # If we have a clue card, have person enter result
+        if clue_cards == 1:
+            card_shown = input('Please enter which card was revealed')
+            assert card_shown in self.locations.union(self.weapons, self.charcters), "That doesn't look like anything to me..."
+        # Update each players possible hands 
+        
+        # Complete room movement
         self.position, room = self.move_on_board(dice_roll)
         print(self.position)
-    
+        
+        # If we have moved to a new room, make a suggestion
         if self.position in ClueGame.room_locations.values():
             print('I have moved to {}'.format(room))
             top_char, top_weapon, top_location = self.get_top_suggestions()
             print('Hm... what should I suggest...')
             time.sleep(5)
             print('I suggest {} did it with the {} in the {}'.format(top_char, top_weapon, room))
+        # If we have not moved to a new room, make our way to a room
         else:
             print('I am on my way to the {}'.format(room))
         
-    def rule_out_card(self, player, card):
-        for single_player in self.game_state:
-            self.game_state[single_player][card] = 1 if single_player == player else -1
 
     # function for updating the possible cards each player has in each round
     def update_possible_cards(self, player):
@@ -159,8 +175,9 @@ class ClueGame:
                 self.possible_cards[player][previous_round] = self.possible_cards[player][previous_round].difference(impossible_cards_in_set)
             # if there is only one possible card, set the game state variable to reflect that
             if len(self.possible_cards[player][previous_round]) == 1:
-                card = self.possible_cards[player][previous_round][0]
-                self.rule_out_card(player, card)
+                card = ''.join([str(card) for card in self.possible_cards[player][previous_round]])
+                for single_player in self.game_state:
+                    self.game_state[single_player][card] = 1 if single_player == player else -1
                     
     # turn for other players
     def other_turn(self, player, make_suggestion = True):
