@@ -352,7 +352,7 @@ class ClueGame:
                     self.possible_cards[player][previous_round] = self.possible_cards[player][previous_round].difference(impossible_cards_in_set)
                 # if there is only one possible card, set the game state variable to reflect that
                 if len(self.possible_cards[player][previous_round]) == 1:
-                    card = self.possible_cards[player][previous_round]][0]
+                    card = self.possible_cards[player][previous_round][0]
                     self.rule_out_card(player, card)
                 
     # turn for other players
