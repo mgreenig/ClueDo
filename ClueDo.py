@@ -132,6 +132,7 @@ class ClueGame:
             # by finding shortest path to closest room and moving as far along it as dice roll will allow
             closest_room = np.random.choice(possible_rooms,size=1)[0]
             new_location = nx.shortest_path(board_graph, self.position, self.room_locations[closest_room])[dice_roll]
+            print('Just moved to square {}'.format(new_location))
             return new_location, closest_room
 
         # If more than one possible, close room same distance apart, pick one at random and move to it
@@ -142,12 +143,14 @@ class ClueGame:
             # Move to closest room at random
             room = np.random.choice(best_possible_rooms, size=1)[0]
             new_location = self.room_locations[room]
+            print('Just moved to {}'.format(room))
             return new_location, room
 
         # If only one room available, move to it
         else:
             room = possible_rooms[0]
             new_location = self.room_locations[possible_rooms[0]]
+            print('Just moved to {}'.format(room))
             return new_location, room
         
     def which_player_showed_card(self, card):
