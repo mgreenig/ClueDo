@@ -8,6 +8,8 @@ class ClueGame:
     characters = {'Colonel Mustard', 'Miss Scarlett', 'Mrs Peacock', 'Dr Orchid', 'Rev Green', 'Prof Plum'}
     weapons = {'Rope', 'Dagger', 'Wrench', 'Revolver', 'Candlestick', 'Lead Pipe'}
     locations = {'Kitchen', 'Dining Room', 'Lounge', 'Hall', 'Study', 'Library', 'Billiard Room', 'Conservatory', 'Ballroom'}
+    secret_passage_locations = {'Lounge', 'Conservatory', 'Study', 'Kitchen'}
+    non_secret_passage_locations = {'Dining Room', 'Hall', 'Library', 'Billiard Room', 'Ballroom'}
     all_cards = characters.union(weapons, locations)
     board_graph = board_graph
     char_starting_positions = {'Colonel Mustard': 66, 'Miss Scarlett': 4, 'Mrs Peacock': 145, 'Dr Orchid': 196, 'Rev Green':95, 'Prof Plum': 28}
@@ -108,10 +110,9 @@ class ClueGame:
         # Calculate distances to each room from current position
         path_lengths = self.get_path_lengths()
         
-        # Get scores for each room and filter possible rooms as rooms with lowest score
+        # Get scores for each room 
         room_scores = {room: self.score_card(room) for room in ClueGame.locations if self.is_card_possible(room)}
-        top_rooms = [room for room in room_scores if room_scores[room] == min(room_scores.values())]
-
+   
         # Filter rooms further away than dice roll
         possible_rooms = [key for key in room_scores if path_lengths[key] <= dice_roll]
 
@@ -123,9 +124,9 @@ class ClueGame:
             possible_rooms = [key for key in room_scores if path_lengths[key] == dist_to_closest_viable_room]
             # Pick one of these close and viable rooms at random and move to it
             # by finding shortest path to closest room and moving as far along it as dice roll will allow
-            closest_room_key = np.random.choice(possible_rooms,size=1)[0]
-            new_location = nx.shortest_path(board_graph, self.position, self.room_locations[closest_room_key])[dice_roll]
-            return new_location, closest_room_key
+            closest_room = np.random.choice(possible_rooms,size=1)[0]
+            new_location = nx.shortest_path(board_graph, self.position, self.room_locations[closest_room])[dice_roll]
+            return new_location, closest_room
 
         # If more than one possible, close room same distance apart, pick one at random and move to it
         elif len(possible_rooms) > 1:
@@ -133,9 +134,9 @@ class ClueGame:
             best_possible_room_score = min([room_scores[room] for room in possible_rooms])
             best_possible_rooms = [room for room in possible_rooms if room_scores[room] == best_possible_room_score]
             # Move to closest room at random
-            room_key = np.random.choice(possible_rooms,size=1)[0]
-            new_location = self.room_locations[room_key]
-            return new_location, room_key
+            room = np.random.choice(best_possible_rooms, size=1)[0]
+            new_location = self.room_locations[room]
+            return new_location, room
 
         # If only one room available, move to it
         else:
@@ -160,7 +161,7 @@ class ClueGame:
         else:
             self.rule_out_card(character, card)    
         
-    def clue_card(self):
+    def clue_card(self, dice_roll = False):
             
         # get player showing card and the type of clue card being shown
         player_showing_card = ClueGame.card_input(self.players, 'Please enter the player that showed the card', 'Who is that? Try again.')
@@ -189,21 +190,36 @@ class ClueGame:
             else:
                 suggested_card = ClueGame.card_input(self.all_cards, 'Please enter which card was suggested.', 'That doesn\'t look like anything to me...')
                 self.which_player_showed_card(suggested_card)    
+                
         # if the card is a secret passage card       
         elif clue_card_type == 'Secret passage':
             # if it's our turn, make a passage to the lowest scoring room
             if player_showing_card == self.my_char:
-                if self.position in ClueGame.room_locations.values():
-                    closest_room = {loc: room for room, loc in ClueGame.room_locations.items()}[self.position]
-                    # find best room that is not the closest room
-                    top_room = self.find_best_card({room for room in ClueGame.locations if room != closest_room})
-                else:
+                # if we are in a room with a secret passage
+                if self.position in [loc for room, loc in ClueGame.room_locations.items() if room in ClueGame.secret_passage_locations]:
+                    # find best room that does not have a passage
+                    best_room = self.find_best_card(ClueGame.non_secret_passage_locations)
+                # if we are not in a room with a secret passage
+                elif self.position in [loc for room, loc in ClueGame.room_locations.items() if room not in ClueGame.secret_passage_locations]:
+                    # make a passage from the current room
+                    best_room = ClueGame.room_locations[self.position]
+                # if we are not in a room, find possible rooms
+                elif self.position not in [loc for room, loc in ClueGame.room_locations.items()]:
                     path_lengths = self.get_path_lengths()
-                    closest_rooms = [room for room in path_lengths if path_lengths[room] == min(path_lengths.values())]
-                    closest_room = np.random.choice(closest_rooms, size=1)[0]
-                    top_room = self.find_best_card({room for room in ClueGame.locations if room != closest_room})
+                    possible_rooms = [room for room in room_scores if path_lengths[key] <= dice_roll]
+                    # if any possible rooms are secret passage rooms, make a passage to the room with the best score
+                    if any([room in ClueGame.secret_passage_locations for room in possible_rooms]):
+                        best_room = self.find_best_card(ClueGame.non_secret_passage_locations)
+                    # else if all possible rooms are not secret passage locations (and there are possible rooms), find the best one
+                    elif len(possible_rooms) >= 1:
+                        best_room = self.find_best_card(possible_rooms)
+                    # else if there are not any possible rooms, choose to put the passage in the closest room that could still be in the envelope
+                    else:
+                        path_lengths_non_passage_rooms = {room: path_length for room, path_length in path_lengths.items() if room in ClueGame.non_secret_passage_locations and self.is_card_possible(room)}
+                        best_room = min(path_lengths_non_passage_rooms, key = lambda room: path_lengths_non_passage_rooms[room])
                 print('Let\'s make a passage from {} to {}'.format(current_room, top_room))
-                board_graph.add_edge(ClueGame.room_locations[current_room], ClueGame.room_locations[top_room])
+                for secret_passage_room in ClueGame.secret_passage_locations:
+                    board_graph.add_edge(ClueGame.room_locations[secret_passage_room], ClueGame.room_locations[best_room])
             else:
                 chosen_first_room = ClueGame.card_input(ClueGame.locations, 'Please enter the first room of the passage', 'That\'s not a valid room.')
                 chosen_second_room = ClueGame.card_input(ClueGame.locations, 'Please enter the secondary room of the passage', 'That\'s not a valid room.')
@@ -230,10 +246,6 @@ class ClueGame:
            
             self.clue_card()
         
-            # Update each players possible hands 
-            self.rule_out_card(player_showing_card, card_shown)
-            self.update_possible_cards(player_showing_card)
-            
         # Update possible guesses after clue card is shown
         self.update_possible_guesses()
         
