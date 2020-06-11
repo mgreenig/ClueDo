@@ -190,7 +190,7 @@ class ClueGame:
                     best_card = self.find_best_card(ClueGame.characters)
                 elif type_of_choice_reveal == 'Weapon':
                     best_card = self.find_best_card(ClueGame.weapons)
-                elif type_of_choice_reveal = 'Location':
+                elif type_of_choice_reveal == 'Location':
                     best_card = self.find_best_card(ClueGame.locations)
                 time.sleep(1)
                 print('If anyone has {}, please show it.'.format(best_card))
