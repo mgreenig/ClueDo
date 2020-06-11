@@ -1,6 +1,6 @@
-import numpy as np
-import time
+ort time
 import networkx as nx
+import importlib
 from Board_graph import board_graph
 
 class ClueGame:
@@ -11,7 +11,6 @@ class ClueGame:
     secret_passage_locations = {'Lounge', 'Conservatory', 'Study', 'Kitchen'}
     non_secret_passage_locations = {'Dining Room', 'Hall', 'Library', 'Billiard Room', 'Ballroom'}
     all_cards = characters.union(weapons, locations)
-    board_graph = board_graph
     char_starting_positions = {'Colonel Mustard': 66, 'Miss Scarlett': 4, 'Mrs Peacock': 145, 'Dr Orchid': 196, 'Rev Green':95, 'Prof Plum': 28}
     room_locations = {'Kitchen': 194, 'Dining Room': 87, 'Lounge': 5, 'Hall': 3, 'Study': 1, 'Library': 82, 'Billiard Room': 109, 'Conservatory': 186, 'Ballroom': 190}
     possible_clue_cards = {'Specific card reveal', 'Choice card reveal', 'Secret passage', 'Player movement', 'Positional reveal', 'All reveal', 'Choice player reveal'}
@@ -38,6 +37,8 @@ class ClueGame:
         # turn tracker
         self.current_turn = 0
         self.current_round = 0
+        # update possible guesses to start the game
+        self.update_possible_guesses()
         
     # function that asks for input and loops until the input is present in the viable card list
     @staticmethod
@@ -61,7 +62,7 @@ class ClueGame:
     
     # use score_card to find best card from a list
     def find_best_card(self, card_list):
-        card_scores = {card: self.score_card(card) for card in self.card_list if self.is_card_possible(card)}
+        card_scores = {card: self.score_card(card) for card in card_list if self.is_card_possible(card)}
         best_card = min(card_scores, key = lambda card: card_scores[card])
         return best_card
     
@@ -70,7 +71,7 @@ class ClueGame:
         for single_player in self.game_state:
             self.game_state[single_player][card] = 1 if single_player == player else -1
         if player == self.my_char:
-            self.my_cards = self.my_cards.remove(card)
+            self.my_cards.remove(card)
             
     # function for making a suggestion on our turn
     def get_top_suggestions(self):
@@ -93,14 +94,9 @@ class ClueGame:
                 location_scores[location] = self.score_card(location)
                  
         # find the card(s) in each category with the minimum score
-        top_characters = [character for character in char_scores if char_scores[character] == min(char_scores.values())]
-        top_weapons = [weapon for weapon in weapon_scores if weapon_scores[weapon] == min(weapon_scores.values())]
-        top_locations = [location for location in location_scores if location_scores[location] == min(location_scores.values())]
-        
-        # sample randomly 
-        top_char = np.random.choice(top_characters, size=1)[0]
-        top_weapon = np.random.choice(top_weapons, size=1)[0]
-        top_location = np.random.choice(top_locations, size=1)[0]
+        top_char = min(char_scores, key = lambda char: char_scores[char])
+        top_weapon = min(weapon_scores, key = lambda weapon: weapon_scores[weapon])
+        top_location = min(location_scores, key = lambda location: location_scores[location])
         
         return top_char, top_weapon, top_location
     
@@ -132,7 +128,6 @@ class ClueGame:
             # by finding shortest path to closest room and moving as far along it as dice roll will allow
             closest_room = np.random.choice(possible_rooms,size=1)[0]
             new_location = nx.shortest_path(board_graph, self.position, self.room_locations[closest_room])[dice_roll]
-            print('Just moved to square {}'.format(new_location))
             return new_location, closest_room
 
         # If more than one possible, close room same distance apart, pick one at random and move to it
@@ -143,14 +138,12 @@ class ClueGame:
             # Move to closest room at random
             room = np.random.choice(best_possible_rooms, size=1)[0]
             new_location = self.room_locations[room]
-            print('Just moved to {}'.format(room))
             return new_location, room
 
         # If only one room available, move to it
         else:
             room = possible_rooms[0]
             new_location = self.room_locations[possible_rooms[0]]
-            print('Just moved to {}'.format(room))
             return new_location, room
         
     def which_player_showed_card(self, card):
@@ -178,11 +171,18 @@ class ClueGame:
                                              'That\'s not a valid type of clue card. Trust me, we looked through all of them.')
         # if it is a specific card reveal, take in the specific card and update the game state
         if clue_card_type == 'Specific card reveal':
-            card_shown = ClueGame.card_input(self.all_cards, 'Please enter which card was revealed.', 'That doesn\'t look like anything to me...')
-            self.which_player_showed_card(card)
+            card_shown = ClueGame.card_input(self.all_cards, 'Please enter which card is to be revealed.', 'That doesn\'t look like anything to me...')
+            if card_shown in self.my_cards:
+                if card_shown in ClueGame.characters:
+                    print('Here is {}'.format(card_shown))
+                else:
+                    print('Here is the {}'.format(card_shown))
+                self.rule_out_card(self.my_char, card_shown)
+            else:
+                self.which_player_showed_card(card_shown)
             
         # if the card says to choose a card to reveal, choose the top card   
-        elif clue_card_type == 'Choice reveal':
+        elif clue_card_type == 'Choice card reveal':
             if whose_turn == self.my_char:
                 type_of_choice_reveal = ClueGame.card_input({'Suspect', 'Weapon', 'Location'}, 'Please enter which type of card is to be revealed.', 'That is not a valid type of card')
                 print('Hmmm, what\'s the best card to choose...')
@@ -202,6 +202,7 @@ class ClueGame:
                 
         # if the card is a secret passage card       
         elif clue_card_type == 'Secret passage':
+            print(self.position)
             # if it's our turn, make a passage to the lowest scoring room
             if whose_turn == self.my_char:
                 # if we are in a room with a secret passage
@@ -215,7 +216,9 @@ class ClueGame:
                 # if we are not in a room, find possible rooms
                 elif self.position not in [loc for room, loc in ClueGame.room_locations.items()]:
                     path_lengths = self.get_path_lengths()
-                    possible_rooms = [room for room in room_scores if path_lengths[key] <= dice_roll]
+                    # Get scores for each room 
+                    room_scores = {room: self.score_card(room) for room in ClueGame.locations if self.is_card_possible(room)}
+                    possible_rooms = [room for room in room_scores if path_lengths[room] <= dice_roll]
                     # if any possible rooms are secret passage rooms, make a passage to the room with the best score
                     if any([room in ClueGame.secret_passage_locations for room in possible_rooms]):
                         best_room = self.find_best_card(ClueGame.non_secret_passage_locations)
@@ -225,12 +228,14 @@ class ClueGame:
                     # else if there are not any possible rooms, choose to put the passage in the closest room that could still be in the envelope
                     else:
                         path_lengths_non_passage_rooms = {room: path_length for room, path_length in path_lengths.items() if room in ClueGame.non_secret_passage_locations and self.is_card_possible(room)}
+                        print(path_lengths_non_passage_rooms)
                         best_room = min(path_lengths_non_passage_rooms, key = lambda room: path_lengths_non_passage_rooms[room])
-                print('Let\'s make a passage from {} to {}'.format(current_room, top_room))
+                print('Let\'s make a passage through the {}'.format(best_room))
                 for secret_passage_room in ClueGame.secret_passage_locations:
                     board_graph.add_edge(ClueGame.room_locations[secret_passage_room], ClueGame.room_locations[best_room])
             else:
-                chosen_room = ClueGame.card_input(ClueGame.locations, 'Please enter which room you would like to connect to the secret passages.', 'That\'s not a valid room.')
+                chosen_room = ClueGame.card_input(ClueGame.locations, 'Please enter which room {} would like to connect to the secret passages.'.format(whose_turn)
+                                                  , 'That\'s not a valid room.')
                 for secret_passage_room in ClueGame.secret_passage_locations:
                     board_graph.add_edge(ClueGame.room_locations[secret_passage_room], ClueGame.room_locations[chosen_room])
         
@@ -241,35 +246,57 @@ class ClueGame:
             print('I have moved to the {}.'.format(best_room))
             
         elif clue_card_type == 'Positional reveal':
-            # take as input the acrd that was shown
-            shown_card = self.card_input(ClueGame.all_cards, 'Which card would you like to show me?', 'That\'s not a valid card')
+            # take as input the card that was shown
             our_index = self.players.index(self.my_char)
             player_to_our_right = self.players[our_index-1] if our_index > 0 else self.players[-1]
+            shown_card = self.card_input(ClueGame.all_cards, 'Which card would you like to show me, {}?'.format(player_to_our_right), 'That\'s not a valid card')
             self.rule_out_card(player_to_our_right, shown_card)
             self.update_possible_cards(player_to_our_right)
             
-        elif clue_card_type == 'All reveal':
-            # take the card with the max score 
+            # show a card to the player to our left
+            player_to_our_left = self.players[our_index+1] if our_index < len(self.players)-1 else self.players[0]
             random_card = np.random.choice([card for card in self.my_cards], size = 1)[0]
+            print('I have a card to show {}...'.format(player_to_our_left))
+            time.sleep(3)
             print('My card is: {}.'.format(random_card))
             self.rule_out_card(self.my_char, random_card)
+            
+        elif clue_card_type == 'All reveal':
             for player in self.players:
-                shown_card = ClueGame.card_input(ClueGame.all_cards, 'Please enter which card {} showed.'.format(player), 'That\'s not a real card. Please don\'t waste my time, I spent so long on this fucking bot.')
-                self.rule_out_card(player, shown_card)
-                self.update_possible_cards(player)
+                if player == self.my_char:
+                    # take a random card
+                    random_card = np.random.choice([card for card in self.my_cards], size = 1)[0]
+                    print('My card is: {}.'.format(random_card))
+                    self.rule_out_card(self.my_char, random_card)
+                else:    
+                    shown_card = ClueGame.card_input(ClueGame.all_cards, 'Please enter which card {} showed.'.format(player), 'That\'s not a real card. Please don\'t waste my time, I spent so long on this fucking bot.')
+                    self.rule_out_card(player, shown_card)
+                    self.update_possible_cards(player)
             
         elif clue_card_type == 'Choice player reveal':
-            player_scores = {}
-            # score each player based on our knowledge of their hand - i.e. how many cards we know they have for sure
-            for player in self.game_state:
-                player_scores[player] = np.count_nonzero([self.game_state[player][item] == 1 for item in self.game_state[player]])
-            # best player has the least number of 1s in the game state (minimum score)
-            best_player = min(player_scores, key = lambda player: player_scores[player])
-            print('I would like {} to reveal a card'.format(best_player))
-            shown_card = ClueGame.card_input(ClueGame.all_cards, 'Please enter which card {} showed'.format(best_player), 'That\'s not a real card. Please don\'t waste my time, I spent so long on this fucking bot.')
-            self.rule_out_card(best_player, shown_card)
-            self.update_possible_cards(best_player)
-                                             
+            if whose_turn == self.my_char:
+                player_scores = {}
+                # score each player based on our knowledge of their hand - i.e. how many cards we know they have for sure
+                for player in self.game_state:
+                    player_scores[player] = np.count_nonzero([self.game_state[player][item] == 1 for item in self.game_state[player]])
+                # best player has the least number of 1s in the game state (minimum score)
+                best_player = min(player_scores, key = lambda player: player_scores[player])
+                print('I would like {} to reveal a card'.format(best_player))
+                shown_card = ClueGame.card_input(ClueGame.all_cards, 'Please enter which card {} showed'.format(best_player), 'That\'s not a real card. Please don\'t waste my time, I spent so long on this fucking bot.')
+                self.rule_out_card(best_player, shown_card)
+                self.update_possible_cards(best_player)
+            else:
+                player_to_reveal_card = ClueGame.card_input(self.players, 'Please enter which player was chosen by {} to reveal a card'.format(whose_turn), 'That\'s not a valid player.')
+                if player_to_reveal_card == self.my_char:
+                    random_card = np.random.choice([card for card in self.my_cards], size = 1)[0]
+                    print('Ready to show my card, but only to {}...'.format(whose_turn))
+                    time.sleep(3)
+                    print('My card is {}'.format(random_card))
+                    self.rule_out_card(self.my_char, random_card)
+                else:
+                    card_revealed = ClueGame.card_input(ClueGame.all_cards, 'Please enter which card was revealed by {}'.format(player_to_reveal_card), 'That\'s not a valid card.')
+                    self.rule_out_card(player_to_reveal_card, card_revealed)
+                    self.update_possible_cards(player_to_reveal_card)                             
                                                                  
     # function for taking our turn
     def our_turn(self):
@@ -289,24 +316,27 @@ class ClueGame:
         
         # If we have a clue card, have person enter result
         for i in range(n_clue_cards):
-            self.clue_card(whose_turn = self.my_player, dice_roll = dice_roll)
+            self.clue_card(whose_turn = self.my_char, dice_roll = dice_roll)
         
         # Complete room movement
         self.position, room = self.move_on_board(dice_roll)
         
         # If we have moved to a new room, make a suggestion
         if self.position in ClueGame.room_locations.values():
-            print('I have moved to {}'.format(room))
+            print('I have moved to the {}'.format(room))
             top_char, top_weapon, top_location = self.get_top_suggestions()
+            time.sleep(1)
             print('Hm... what should I suggest...')
             time.sleep(5)
-            print('I suggest {} did it with the {} in the {}'.format(top_char, top_weapon, top_location))
+            print('I suggest {} did it with the {} in the {}'.format(top_char, top_weapon, room))
             which_player = ClueGame.card_input(self.players, 'Please enter the player that showed a card', 'That\'s not a valid player.')
-            which_card = ClueGame.card_input([top_char, top_weapon, top_location], 'Please enter which card {} showed'.format(which_player), 'That\'s not one of the cards I suggested.')
+            which_card = ClueGame.card_input([top_char, top_weapon, room], 'Please enter which card {} showed'.format(which_player), 'That\'s not one of the cards I suggested.')
             self.rule_out_card(which_player, which_card)
             self.update_possible_cards(which_player)
         # If we have not moved to a new room, make our way to a room
         else:
+            time.sleep(1)
+            print('Just moved to square {}'.format(self.position))
             print('I am on my way to the {}'.format(room))
             
         # Update possible guesses after clue card is shown
@@ -321,17 +351,26 @@ class ClueGame:
     # update attribute for possible cards (cards that could be in the envelope) in each category
     def update_possible_guesses(self):
         
+        impossible_characters = []
         for char in self.possible_characters:
             if not self.is_card_possible(char):
-                self.possible_characters.remove(char)
+                impossible_characters.append(char)
                 
+        self.possible_characters = self.possible_characters.difference(set(impossible_characters))
+                
+        impossible_weapons = []    
         for weapon in self.possible_weapons:
             if not self.is_card_possible(weapon):
-                self.possible_weapons.remove(weapon)
+                impossible_weapons.append(weapon)
                 
+        self.possible_weapons = self.possible_weapons.difference(set(impossible_weapons))
+         
+        impossible_locations = []
         for location in self.possible_locations:
             if not self.is_card_possible(location):
-                self.possible_locations.remove(location)
+                impossible_locations.append(location)
+                
+        self.possible_locations = self.possible_locations.difference(set(impossible_locations))        
                 
     # function for updating the possible cards each player has in each round
     def update_possible_cards(self, player):
@@ -394,6 +433,7 @@ class ClueGame:
                 
                 # if it is our turn, and we have one of the suggested cards, show it
                 if current_player == self.my_char:
+                    time.sleep(1)
                     if any(np.isin(self.my_cards, suggestions)):
                         matching_cards = np.array(self.my_cards)[np.isin(self.my_cards, suggestions)]
                         matching_card = np.random.choice(matching_cards, size = 1)[0] if len(matching_cards) > 1 else matching_cards[0]
@@ -422,4 +462,4 @@ class ClueGame:
         self.current_turn += 1  
         
         if self.current_turn % len(self.players) == 0:
-            self.current_round = int(self.current_turn / len(self.players))   
+            self.current_round = int(self.current_turn / len(self.players))
