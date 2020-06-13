@@ -117,7 +117,12 @@ class ClueGame:
     # Function for calculating shortest path to each room avoiding other rooms
     def get_paths(self):
       # Create dictionary of paths to each room
-      paths_avoiding = {room: self.shortest_path_avoiding(self.position, ClueGame.room_locations[room], [ClueGame.room_locations[room_key] for room_key in ClueGame.room_locations if ClueGame.room_locations[room_key] != ClueGame.room_locations[room] and ClueGame.room_locations[room_key] != self.position]) for room in ClueGame.room_locations}
+        other_rooms = [ClueGame.room_locations[room_key] for room_key in ClueGame.room_locations if ClueGame.room_locations[room_key] != self.position]
+        paths_avoiding = {}
+        for room in ClueGame.room_locations:
+            # get room locations that are not our current position and not the room in the current iteration
+            other_rooms = [ClueGame.room_locations[room_key] for room_key in ClueGame.room_locations if ClueGame.room_locations[room_key] != self.position if room_key != room]
+            paths_avoiding[room] = self.shortest_path_avoiding(board_graph, self.position, ClueGame.room_locations[room], other_rooms)
       return(paths_avoiding)
 
     # function for moving on the board, towards or into the best room 
@@ -511,8 +516,11 @@ class ClueGame:
         
         while self.game_is_active:
         
-            if (player_index % our_index == 0 and player_index != 0) or player_going_first == self.my_char:
-                self.our_turn()
+            if player_index % our_index == 0::
+                if player_index == 0 and player_going_first != self.my_char:
+                    self.other_turn(player = self.players[player_index % len(self.players)])
+                else:
+                    self.our_turn()
             else:
                 self.other_turn(player = self.players[player_index % len(self.players)])
                 
