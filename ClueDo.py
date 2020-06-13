@@ -1,6 +1,7 @@
-ort time
+import numpy as np
+import time
 import networkx as nx
-import importlib
+import os
 from Board_graph import board_graph
 
 class ClueGame:
@@ -37,17 +38,20 @@ class ClueGame:
         # turn tracker
         self.current_turn = 0
         self.current_round = 0
+        self.game_is_active = True
         # update possible guesses to start the game
         self.update_possible_guesses()
         
     # function that asks for input and loops until the input is present in the viable card list
     @staticmethod
     def card_input(viable_card_list, input_message, error_message):
-        card = input(input_message)
-        while card not in viable_card_list:
+        viable_card_list = [card.lower().rstrip() for card in viable_card_list]
+        card = input(input_message + '\n')
+        card_to_match = card.lower().rstrip()
+        while card_to_match not in viable_card_list:
             print(error_message)
             time.sleep(1)
-            card = input(input_message)
+            card = input(input_message + '\n')
         return card
         
     # function that returns false if we know that any player has the card
@@ -148,11 +152,11 @@ class ClueGame:
         
     def which_player_showed_card(self, card):
         
-        character = input('If a player showed the card, enter their character here. Otherwise, press enter')
+        character = input('If a player showed the card, enter their character here. Otherwise, press enter.\n')
         while character not in self.players and character != '':
             print("Who is that? Try again.")
             time.sleep(1)
-            character = input('If anyone has {}, please show it. If a player showed the card, enter their character here. Otherwise, press enter'.format(best_card))
+            character = input('If anyone has {}, please show it. If a player showed the card, enter their character here. Otherwise, press enter.\n'.format(card))
         if character == '':
             if card in self.players:
                 self.possible_characters = {card}
@@ -175,8 +179,10 @@ class ClueGame:
             if card_shown in self.my_cards:
                 if card_shown in ClueGame.characters:
                     print('Here is {}'.format(card_shown))
+                    time.sleep(3)
                 else:
-                    print('Here is the {}'.format(card_shown))
+                    print('Here is the {}.'.format(card_shown))
+                    time.sleep(3)
                 self.rule_out_card(self.my_char, card_shown)
             else:
                 self.which_player_showed_card(card_shown)
@@ -202,7 +208,6 @@ class ClueGame:
                 
         # if the card is a secret passage card       
         elif clue_card_type == 'Secret passage':
-            print(self.position)
             # if it's our turn, make a passage to the lowest scoring room
             if whose_turn == self.my_char:
                 # if we are in a room with a secret passage
@@ -258,7 +263,9 @@ class ClueGame:
             random_card = np.random.choice([card for card in self.my_cards], size = 1)[0]
             print('I have a card to show {}...'.format(player_to_our_left))
             time.sleep(3)
-            print('My card is: {}.'.format(random_card))
+            print('My card is: {}. This message will self-destruct in 5 seconds'.format(random_card))
+            time.sleep(5)
+            os.system('cls')
             self.rule_out_card(self.my_char, random_card)
             
         elif clue_card_type == 'All reveal':
@@ -282,11 +289,14 @@ class ClueGame:
                 # best player has the least number of 1s in the game state (minimum score)
                 best_player = min(player_scores, key = lambda player: player_scores[player])
                 print('I would like {} to reveal a card'.format(best_player))
-                shown_card = ClueGame.card_input(ClueGame.all_cards, 'Please enter which card {} showed'.format(best_player), 'That\'s not a real card. Please don\'t waste my time, I spent so long on this fucking bot.')
+                hidden_cards = [card for card in ClueGame.all_cards if self.is_card_possible(card)]
+                print(hidden_cards)
+                shown_card = ClueGame.card_input(hidden_cards, 'Please enter which card {} showed.'.format(best_player), 'Please don\'t waste my time, I spent so long on this fucking bot.')
+                time.sleep(1)
                 self.rule_out_card(best_player, shown_card)
                 self.update_possible_cards(best_player)
             else:
-                player_to_reveal_card = ClueGame.card_input(self.players, 'Please enter which player was chosen by {} to reveal a card'.format(whose_turn), 'That\'s not a valid player.')
+                player_to_reveal_card = ClueGame.card_input(self.players, 'Please enter which player was chosen by {} to reveal a card.'.format(whose_turn), 'That\'s not a valid player. Please don\'t waste my time, I spent so long on this fucking bot.')
                 if player_to_reveal_card == self.my_char:
                     random_card = np.random.choice([card for card in self.my_cards], size = 1)[0]
                     print('Ready to show my card, but only to {}...'.format(whose_turn))
@@ -294,7 +304,7 @@ class ClueGame:
                     print('My card is {}'.format(random_card))
                     self.rule_out_card(self.my_char, random_card)
                 else:
-                    card_revealed = ClueGame.card_input(ClueGame.all_cards, 'Please enter which card was revealed by {}'.format(player_to_reveal_card), 'That\'s not a valid card.')
+                    card_revealed = ClueGame.card_input(ClueGame.all_cards, 'Please enter which card was revealed by {}.'.format(player_to_reveal_card), 'That\'s not a valid card.')
                     self.rule_out_card(player_to_reveal_card, card_revealed)
                     self.update_possible_cards(player_to_reveal_card)                             
                                                                  
@@ -302,17 +312,17 @@ class ClueGame:
     def our_turn(self):
         
         # Enter dice roll value for movement
-        dice_roll = int(input('Please Enter Dice Roll'))
+        dice_roll = int(input('Please Enter Dice Roll.\n'))
         while type(dice_roll) != int or dice_roll > 12 or dice_roll < 2:
             print("Uh... I'm gonna need a valid input")
             time.sleep(1)
-            dice_roll = int(input('Please Enter Dice Roll'))
+            dice_roll = int(input('Please Enter Dice Roll.\n'))
             
-        n_clue_cards = int(input('Please enter number of clue cards shown'))
+        n_clue_cards = int(input('Please enter number of clue cards shown.\n'))
         while type(n_clue_cards) != int or n_clue_cards > 2 or n_clue_cards < 0:
             print("Uh... I'm gonna need a valid input")
             time.sleep(1)
-            n_clue_cards = int(input('Please enter number of clue cards shown'))
+            n_clue_cards = int(input('Please enter number of clue cards shown.\n'))
         
         # If we have a clue card, have person enter result
         for i in range(n_clue_cards):
@@ -329,10 +339,15 @@ class ClueGame:
             print('Hm... what should I suggest...')
             time.sleep(5)
             print('I suggest {} did it with the {} in the {}'.format(top_char, top_weapon, room))
-            which_player = ClueGame.card_input(self.players, 'Please enter the player that showed a card', 'That\'s not a valid player.')
-            which_card = ClueGame.card_input([top_char, top_weapon, room], 'Please enter which card {} showed'.format(which_player), 'That\'s not one of the cards I suggested.')
-            self.rule_out_card(which_player, which_card)
-            self.update_possible_cards(which_player)
+            which_player = ClueGame.card_input(self.players + [''], 'If a player showed a card, please enter which one. If not press enter.', 'That\'s not a valid player.')
+            if which_player:
+                which_card = ClueGame.card_input([top_char, top_weapon, room], 'Please enter which card {} showed.'.format(which_player), 'That\'s not one of the cards I suggested.')
+                self.rule_out_card(which_player, which_card)
+                self.update_possible_cards(which_player)
+            else:
+                self.possible_characters = {top_char}
+                self.possible_weapons = {top_weapon}
+                self.possible_locations = {room}
         # If we have not moved to a new room, make our way to a room
         else:
             time.sleep(1)
@@ -343,9 +358,9 @@ class ClueGame:
         self.update_possible_guesses()
         
         if len(self.possible_characters) == 1 and len(self.possible_weapons) == 1 and len(self.possible_locations) == 1:
-            character = self.possible_characters[0]
-            weapon = self.possible_weapons[0]
-            location = self.possible_locations[0]
+            character = list(self.possible_characters)[0]
+            weapon = list(self.possible_weapons)[0]
+            location = list(self.possible_locations)[0]
             print('I accuse {} of doing the crime, with the {} in the {}'.format(character, weapon, location))
        
     # update attribute for possible cards (cards that could be in the envelope) in each category
@@ -391,32 +406,30 @@ class ClueGame:
                     self.possible_cards[player][previous_round] = self.possible_cards[player][previous_round].difference(impossible_cards_in_set)
                 # if there is only one possible card, set the game state variable to reflect that
                 if len(self.possible_cards[player][previous_round]) == 1:
-                    card = self.possible_cards[player][previous_round][0]
+                    card = list(self.possible_cards[player][previous_round])[0]
                     self.rule_out_card(player, card)
                 
     # turn for other players
-    def other_turn(self):
-        
-        player = ClueGame.card_input(self.players, 'Please enter which player\'s turn it is', 'Please enter a valid player')
-                      
-        n_clue_cards = int(input('Please enter number of clue cards shown'))
+    def other_turn(self, player):
+           
+        n_clue_cards = int(input('Please enter number of clue cards shown.\n'))
         while type(n_clue_cards) != int or n_clue_cards > 2 or n_clue_cards < 0:
             print("Uh... I'm gonna need a valid input")
             time.sleep(1)
-            n_clue_cards = int(input('Please enter number of clue cards shown'))
+            n_clue_cards = int(input('Please enter number of clue cards shown.\n'))
         
         # If we have a clue card, have person enter result
         for i in range(n_clue_cards):
             self.clue_card(whose_turn = player, dice_roll = False)
         
-        make_suggestion = input('If {} would like to make a suggestion, enter any character and press enter. If not, just press enter.'.format(player))
+        make_suggestion = input('If {} would like to make a suggestion, enter any character and press enter. If not, just press enter.\n'.format(player))
         
         if len(make_suggestion) > 0:
                                
             # take inputs for the suggestion
             sug_character = ClueGame.card_input(ClueGame.characters, 'Please enter the character being accused.', 'I don\'t know that person.')
-            sug_weapon = ClueGame.card_input(ClueGame.weapons, 'Please enter the weapon that was used.', 'Please choose a valid weapon.')
-            sug_location =  ClueGame.card_input(ClueGame.locations, 'Please enter the location of the crime.', 'Please choose a valid location.')
+            sug_weapon = ClueGame.card_input(ClueGame.weapons, 'Please enter the weapon that was suggested.', 'Please choose a valid weapon.')
+            sug_location =  ClueGame.card_input(ClueGame.locations, 'Please enter the location that was suggested.', 'Please choose a valid location.')
            
             suggestions = [sug_character, sug_weapon, sug_location]
             player_position = self.players.index(player)
@@ -437,13 +450,17 @@ class ClueGame:
                     if any(np.isin(self.my_cards, suggestions)):
                         matching_cards = np.array(self.my_cards)[np.isin(self.my_cards, suggestions)]
                         matching_card = np.random.choice(matching_cards, size = 1)[0] if len(matching_cards) > 1 else matching_cards[0]
-                        print('My card is: {}'.format(matching_card))
+                        print('I have a card to show {}...'.format(current_player))
+                        time.sleep(3)
+                        print('My card is: {}. This message will self-destruct in 5 seconds.'.format(matching_card))
+                        time.sleep(5)
+                        os.system('cls')
                         break
                     else: 
                         print('I have no cards to show.')
                 # if it is not our turn, tell the computer whether each character showed a card
                 else:
-                    status = input('Please type any character if {} showed a card. If not, press enter.'.format(current_player))
+                    status = input('Please type any character if {} showed a card. If not, press enter.\n'.format(current_player))
                     # if the player showed a card, let the computer know and figure out which of the cards the player could have possibly showed
                     if status:
                         impossible = [suggestion for suggestion in suggestions if self.game_state[current_player][suggestion] == -1]
@@ -458,8 +475,32 @@ class ClueGame:
                         self.update_possible_cards(current_player)
                         
             self.update_possible_guesses()
-                                 
+                          
+        making_an_accusation = input('Please type any character if {} is making an accusation. If not, press enter.\n'.format(player))
+        
+        if making_an_accusation:
+            # check if accusation was correct
+            accusation_correct = input('Please type any character if the accusation made by {} was correct. If not, press enter.\n'.format(player))
+            if accusation_correct:
+                self.game_is_active = False
+                 
         self.current_turn += 1  
         
         if self.current_turn % len(self.players) == 0:
             self.current_round = int(self.current_turn / len(self.players))
+            
+    def start_game(self):
+        
+        player_going_first = ClueGame.card_input(self.players, 'Please enter which player is going first.', 'That\'s not a valid player')
+        
+        player_index = self.players.index(player_going_first)
+        our_index = self.players.index(self.my_char)
+        
+        while self.game_is_active:
+        
+            if (player_index % our_index == 0 and player_index != 0) or player_going_first == self.my_char:
+                self.our_turn()
+            else:
+                self.other_turn(player = self.players[player_index % len(self.players)])
+                
+            player_index += 1
