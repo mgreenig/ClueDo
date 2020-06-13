@@ -2,7 +2,7 @@ import numpy as np
 import time
 import networkx as nx
 import os
-# from Board_graph import board_graph
+from Board_graph import board_graph
 
 class ClueGame:
     
@@ -104,24 +104,26 @@ class ClueGame:
         
         return top_char, top_weapon, top_location
     
-    # function for calculating distances to each room from current position
-    def get_path_lengths(self):
-        
-        path_lengths =  {room: nx.shortest_path_length(board_graph, self.position, ClueGame.room_locations[room]) for room in ClueGame.room_locations}  
-        return path_lengths
     
     # Function that returns the shortest path between source and target nodes, without travelling through any nodes in avoiding list
     def shortest_path_avoiding(self, graph, source, target, avoiding):
-      # Redefining graph to exclude all nodes in avoiding
-      for node in avoiding:
-        graph = graph.remove_node(avoiding)
-      # Calculating new shortest path
-      return nx.shortest_path(graph, source, target)
+        # Redefining graph to exclude all nodes in avoiding
+        temp_graph = graph
+        for node in avoiding:
+            temp_graph = temp_graph.remove_node(avoiding)
+        # Calculating new shortest path
+        return nx.shortest_path(temp_graph, source, target)
 
     # Function for calculating shortest path to each room avoiding other rooms
     def get_paths(self, graph, source, target):
-      # Create dictionary of paths to each room
-      path_lengths = {room: shortest_path_avoiding(ClueGame.board_graph, self.position, ClueGame.room_locations[room], [ClueGame.room_locations[room_key] for room_key in ClueGame.room_locations if ClueGame.room_locations[room_key] != ClueGame.room_locations[room] and ClueGame.room_locations[room_key] != self.position]) for room in ClueGame.room_locations}
+        # Create dictionary of paths to each room
+        other_rooms = [ClueGame.room_locations[room_key] for room_key in ClueGame.room_locations if ClueGame.room_locations[room_key] != self.position]
+        path_lengths = {}
+        for room in ClueGame.room_locations:
+            # get room locations that are not our current position and not the room in the current iteration
+            other_rooms = [ClueGame.room_locations[room_key] for room_key in ClueGame.room_locations if ClueGame.room_locations[room_key] != self.position if room_key != room]
+            path_lengths[room] = self.shortest_path_avoiding(board_graph, self.position, ClueGame.room_locations[room], other_rooms)
+        
 
     # function for moving on the board, towards or into the best room 
     def move_on_board(self, dice_roll):
@@ -236,7 +238,7 @@ class ClueGame:
                     best_room = ClueGame.room_locations[self.position]
                 # if we are not in a room, find possible rooms
                 elif self.position not in [loc for room, loc in ClueGame.room_locations.items()]:
-                    path_lengths = self.get_path_lengths()
+                    path_lengths = self.get_paths()
                     # Get scores for each room 
                     room_scores = {room: self.score_card(room) for room in ClueGame.locations if self.is_card_possible(room)}
                     possible_rooms = [room for room in room_scores if path_lengths[room] <= dice_roll]
