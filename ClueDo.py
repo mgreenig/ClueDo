@@ -3,7 +3,7 @@ import time
 import networkx as nx
 import os
 from PyInquirer import prompt
-from Board_graph import board_graph
+from BoardGraph import board_graph
 
 class ClueGame:
     
