@@ -1,6 +1,7 @@
 import ClueDo
 from PyInquirer import prompt
 
+# input the players participating in the game
 players = prompt([{
     'type': 'checkbox',
     'name': 'players',
@@ -8,6 +9,7 @@ players = prompt([{
     'choices': [{'name': char} for char in ClueDo.ClueGame.characters],
 }])
 
+# ensure that 3 or more players are selected
 while len(players['players']) < 3:
     players = prompt([{
         'type': 'checkbox',
@@ -16,6 +18,7 @@ while len(players['players']) < 3:
         'choices': [{'name': char} for char in ClueDo.ClueGame.characters],
     }])
 
+# input which character is to be controlled by the computer
 my_char = prompt([{
     'type': 'list',
     'name': 'my_char',
@@ -23,6 +26,7 @@ my_char = prompt([{
     'choices': [{'name': char} for char in players['players']]
 }])
 
+# input the cards to be used by the computer
 my_cards = prompt([{
     'type': 'checkbox',
     'name': 'my_cards',
@@ -30,6 +34,7 @@ my_cards = prompt([{
     'choices': [{'name': char} for char in ClueDo.ClueGame.all_cards]
 }])
 
+# ensure that exactly 3 cards are inputted
 while len(my_cards['my_cards']) != 3:
     my_cards = prompt([{
         'type': 'checkbox',
@@ -38,6 +43,8 @@ while len(my_cards['my_cards']) != 3:
         'choices': [{'name': char} for char in ClueDo.ClueGame.all_cards]
     }])
 
+# initialise instance of the class
 game_instance = ClueDo.ClueGame(players['players'], my_char['my_char'], my_cards['my_cards'])
 
+# begin the game
 game_instance.start_game()
