@@ -18,7 +18,7 @@ The bot uses PyInquirer to interact with the user. When you start the game by ru
 python PlayGame.py
 ```
 
-You will receive the following prompt, asking a player to be selected:
+You will receive the following prompt, asking for participating characters to be selected:
 
 ``` console
 ? Which characters are playing?  (<up>, <down> to move, <space> to select, <a> to toggle, <i> to invert)
@@ -30,7 +30,7 @@ You will receive the following prompt, asking a player to be selected:
   ○ Prof Plum
 ```
 
-Then you will be asked to specify which of the players the bot is to play:
+Then you will be asked to specify which of the characters the bot is to play:
 
 ``` console 
 ? Which character will I be playing?  (Use arrow keys)
