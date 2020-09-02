@@ -10,7 +10,7 @@ A bot that plays ClueDo. This bot controls a single player in the game and contr
 
 `PlayGame.py` -- script for starting the game; run from the command line to play
 
-## Demo
+## Overview and demo
 
 The bot uses PyInquirer to interact with the user. When you start the game by running:
 
@@ -86,5 +86,32 @@ On another player's turn, the bot will ask if the character has made a suggestio
    No
 ```
 
-And if so, will store information about the suggestion and the outcome:
+And if so, will store information about the suggestion, e.g.:
 
+``` console
+? Please enter the character that was suggested.  (Use arrow keys)
+ ❯ Colonel Mustard
+   Prof Plum
+   Mrs Peacock
+   Dr Orchid
+   Rev Green
+   Miss Scarlett
+```
+
+and the outcome:
+
+``` console
+? Did Colonel Mustard show a card?  (Use arrow keys)
+ ❯ Yes
+   No
+``` 
+
+When the bot has enough information, it will make an accusation!
+
+``` console
+I have an accusation to make!
+
+I accuse Mrs Peacock of doing the crime, with the Wrench in the Billiard Room
+```
+
+If you get to this point, it means the bot has won! 
