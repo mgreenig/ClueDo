@@ -4,7 +4,7 @@ A bot that plays ClueDo. This bot controls a single player in the game and contr
 
 ## Table of contents
 
-`Board_graph.py` -- contains the graph used to represent the ClueDo board 
+`BoardGraph.py` -- contains the graph used to represent the ClueDo board 
 
 `ClueDo.py` -- contains the class used to track game information
 
