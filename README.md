@@ -2,6 +2,13 @@
 
 A bot that plays ClueDo. This bot controls a single player in the game and controls its own movements on the board.
 
+## Dependencies
+
+To run the ClueDo bot, the following python packages are required:
+- networkx~=2.4
+- numpy~=1.18.1
+- PyInquirer~=1.0.3
+
 ## Table of contents
 
 `BoardGraph.py` -- contains the graph used to represent the ClueDo board 
