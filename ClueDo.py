@@ -238,7 +238,6 @@ class ClueGame:
                     # else if there are not any possible rooms, choose to put the passage in the closest room that could still be in the envelope
                     else:
                         path_lengths_non_passage_rooms = {room: path_length for room, path_length in path_lengths.items() if room in ClueGame.non_secret_passage_locations and self.is_card_possible(room)}
-                        print(path_lengths_non_passage_rooms)
                         best_room = min(path_lengths_non_passage_rooms, key = lambda room: path_lengths_non_passage_rooms[room])
                 print('Let\'s make a passage through the {}'.format(best_room))
                 for secret_passage_room in ClueGame.secret_passage_locations:
