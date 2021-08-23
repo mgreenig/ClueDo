@@ -73,7 +73,7 @@ class ClueGame:
         best_card = min(card_scores, key = lambda card: card_scores[card])
         return best_card
     
-    # functin for updating the game state after we know that a player has a card
+    # function for updating the game state after we know that a player has a card
     def rule_out_card(self, player, card):
         for single_player in self.game_state:
             self.game_state[single_player][card] = 1 if single_player == player else -1
@@ -345,7 +345,7 @@ class ClueGame:
             time.sleep(5)
             print('I suggest {} did it with the {} in the {}'.format(top_char, top_weapon, room))
             which_player = ClueGame.card_input(self.other_players + ['None'], 'If a player showed a card, please enter which one. If not, select None.', 'That\'s not a valid player.')
-            if which_player:
+            if which_player != 'None':
                 which_card = ClueGame.card_input([top_char, top_weapon, room], 'Please enter which card {} showed.'.format(which_player), 'That\'s not one of the cards I suggested.')
                 self.rule_out_card(which_player, which_card)
                 self.update_possible_cards(which_player)
