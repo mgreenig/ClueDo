@@ -462,10 +462,9 @@ class ClueGame:
                         matching_cards = np.array(self.my_cards)[np.isin(self.my_cards, suggestions)]
                         matching_card = np.random.choice(matching_cards, size = 1)[0] if len(matching_cards) > 1 else matching_cards[0]
                         print('I have a card to show {}...'.format(current_player))
-                        time.sleep(3)
-                        print('My card is: {}. This message will self-destruct in 5 seconds.'.format(matching_card))
                         time.sleep(5)
-                        sys.stdout.write('\033[F')
+                        print('My card is: {}. This message will self-destruct in 5 seconds.'.format(matching_card), end = '\r')
+                        time.sleep(5)
                         break
                     else: 
                         print('I have no cards to show.')
