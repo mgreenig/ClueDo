@@ -267,9 +267,8 @@ class ClueGame:
             random_card = np.random.choice([card for card in self.my_cards], size = 1)[0]
             print('I have a card to show {}...'.format(player_to_our_left))
             time.sleep(3)
-            print('My card is: {}. This message will self-destruct in 5 seconds'.format(random_card))
+            print('My card is: {}. This message will self-destruct in 5 seconds'.format(random_card), end = '\r')
             time.sleep(5)
-            sys.stdout.write('\033[F')
             self.rule_out_card(self.my_char, random_card)
             
         elif clue_card_type == 'All reveal':
