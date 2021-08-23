@@ -303,7 +303,8 @@ class ClueGame:
                     random_card = np.random.choice([card for card in self.my_cards], size = 1)[0]
                     print('Ready to show my card, but only to {}...'.format(whose_turn))
                     time.sleep(3)
-                    print('My card is {}'.format(random_card))
+                    print('My card is {}. This message will self-destruct in 5 seconds.'.format(random_card), end = '\r')
+                    time.sleep(5)
                     self.rule_out_card(self.my_char, random_card)
                 else:
                     card_revealed = ClueGame.card_input(ClueGame.all_cards, 'Please enter which card was revealed by {}.'.format(player_to_reveal_card), 'That\'s not a valid card.')
